@@ -4,13 +4,15 @@ pipeline {
     environment {
         DOCKER_IMAGE = "amarjeet001/static-web"
         DOCKER_TAG = "19"
+        CONTAINER_NAME = "static-website"
     }
 
     stages {
 
         stage('Checkout Code') {
             steps {
-                git url: 'https://github.com/amarjeetchaurasiya27-cyber/static-website.git'
+                git branch: 'main',
+                    url: 'https://github.com/amarjeetchaurasiya27-cyber/static-website.git'
             }
         }
 
@@ -22,11 +24,14 @@ pipeline {
 
         stage('Login to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
-                                 usernameVariable: 'DOCKER_USER',
-                                 passwordVariable: 'DOCKER_PASS')]) {
-
-                    bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    bat """
+                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                    """
                 }
             }
         }
@@ -39,9 +44,11 @@ pipeline {
 
         stage('Deploy Container') {
             steps {
-                bat "docker stop static-website || echo No running container"
-                bat "docker rm static-website || echo No container to remove"
-                bat "docker run -d -p 7765:80 --name static-website %DOCKER_IMAGE%:%DOCKER_TAG%"
+                bat """
+                docker stop %CONTAINER_NAME% 2>nul || echo No running container
+                docker rm %CONTAINER_NAME% 2>nul || echo No container to remove
+                docker run -d -p 7765:80 --name %CONTAINER_NAME% %DOCKER_IMAGE%:%DOCKER_TAG%
+                """
             }
         }
     }
