@@ -5,6 +5,7 @@ pipeline {
         DOCKER_IMAGE = "amarjeet001/static-web"
         DOCKER_TAG = "19"
         CONTAINER_NAME = "static-website"
+        DOCKER = '"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe"'
     }
 
     stages {
@@ -16,9 +17,15 @@ pipeline {
             }
         }
 
+        stage('Check Docker') {
+            steps {
+                bat '%DOCKER% --version'
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
-                bat "docker build -t %DOCKER_IMAGE%:%DOCKER_TAG% ."
+                bat '%DOCKER% build -t %DOCKER_IMAGE%:%DOCKER_TAG% .'
             }
         }
 
@@ -30,7 +37,7 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     bat """
-                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                    echo %DOCKER_PASS% | %DOCKER% login -u %DOCKER_USER% --password-stdin
                     """
                 }
             }
@@ -38,16 +45,16 @@ pipeline {
 
         stage('Push Image to Docker Hub') {
             steps {
-                bat "docker push %DOCKER_IMAGE%:%DOCKER_TAG%"
+                bat '%DOCKER% push %DOCKER_IMAGE%:%DOCKER_TAG%'
             }
         }
 
         stage('Deploy Container') {
             steps {
                 bat """
-                docker stop %CONTAINER_NAME% 2>nul || echo No running container
-                docker rm %CONTAINER_NAME% 2>nul || echo No container to remove
-                docker run -d -p 7765:80 --name %CONTAINER_NAME% %DOCKER_IMAGE%:%DOCKER_TAG%
+                %DOCKER% stop %CONTAINER_NAME% 2>nul || echo No running container
+                %DOCKER% rm %CONTAINER_NAME% 2>nul || echo No container to remove
+                %DOCKER% run -d -p 7765:80 --name %CONTAINER_NAME% %DOCKER_IMAGE%:%DOCKER_TAG%
                 """
             }
         }
